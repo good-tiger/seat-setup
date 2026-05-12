@@ -7,22 +7,24 @@
 
 ## 사용 시나리오
 
-| 상황                       | 실행할 스크립트                                |
-| -------------------------- | ---------------------------------------------- |
-| 새 자리로 옮긴 직후        | `setup.ps1` → `login.ps1` → `setup_claude.ps1` |
-| 평소 자리를 잠깐 비울 때   | (아무것도 안 해도 됨)                          |
-| 자리를 길게 비울 때 (로그아웃) | `logout.ps1`                                  |
-| 다른 자리로 옮기기 전 (정리)   | `remove.ps1`                                  |
+| 상황                           | 실행할 스크립트                                |
+| ------------------------------ | ---------------------------------------------- |
+| 새 자리로 옮긴 직후            | `setup.ps1` → `login.ps1` → `setup_claude.ps1` |
+| 평소 자리를 잠깐 비울 때       | (아무것도 안 해도 됨)                          |
+| 자리를 길게 비울 때 (로그아웃) | `logout.ps1`                                   |
+| 다른 자리로 옮기기 전 (정리)   | `remove.ps1`                                   |
 
 ---
 
 ## 첫 사용 준비
 
 1. 이 저장소를 적당한 위치에 클론한다. (스크립트는 어느 폴더에서 실행해도 동작한다)
-2. GitHub Personal Access Token을 발급한다.
-   - 필요한 scope: `repo`, `read:org`, `gist`, `workflow`
-3. `tokens.example.txt`를 복사해서 `tokens.txt`로 이름을 바꾸고 토큰 값을 채워 넣는다.
-   - 한 줄에 토큰 하나, 여러 줄이면 여러 계정으로 로그인된다.
+2. Personal Access Token을 발급한다.
+   - **GitHub**: Settings → Developer Settings → Personal Access Tokens. scope: `repo`, `read:org`, `gist`, `workflow`
+   - **GitLab** (lab.ssafy.com 등): User Settings → Access Tokens. scope: `read_repository`, `write_repository`
+3. `tokens.example.txt`를 복사해서 `tokens.txt`로 이름을 바꾸고 토큰을 채워 넣는다.
+   - 형식: 한 줄에 `<host> <token>` (예: `github.com ghp_xxx`, `lab.ssafy.com glpat_xxx`)
+   - host 생략 시 github.com으로 간주됨
    - `tokens.txt`는 `.gitignore`에 등록되어 있어 깃에 올라가지 않는다.
 
 ---
@@ -34,22 +36,30 @@
 winget으로 필수 앱을 설치하고 PowerShell 프로필에 유틸리티 함수를 등록한다.
 
 설치 항목:
+
 - Claude Desktop, Claude Code CLI
 - Obsidian
 - GitHub CLI
 
 프로필 등록:
+
 - `git-push-all` 함수 — 현재 폴더의 모든 하위 폴더를 돌면서 변경사항이 있으면 `"실습"` 메시지로 commit·push한다. (실습 과제 일괄 푸시용)
 
-### `login.ps1` — gh 자동 로그인
+### `login.ps1` — git 호스트 자동 로그인
 
-`tokens.txt`의 토큰으로 `gh auth login --with-token`을 실행하고, `gh auth setup-git`으로 git credential helper까지 연결한다. 여러 토큰이 있으면 여러 계정으로 동시 로그인한다.
+`tokens.txt`의 각 줄을 읽어 host에 따라 분기한다:
+
+- **github.com** → `gh auth login --with-token`으로 로그인, `gh auth setup-git`으로 git credential helper 연결
+- **그 외 (GitLab 등)** → `git credential approve`로 Windows 자격 증명 관리자에 저장 (이후 git push/pull 시 자동 사용)
+
+여러 호스트/계정을 한 파일에 같이 적어도 한 번에 처리된다.
 
 ### `setup_claude.ps1` — Claude 스킬/에이전트 적용
 
 이 저장소의 `claude_home/skills`와 `claude_home/agents`를 `~/.claude/skills`, `~/.claude/agents`로 복사한다.
 
 옵션:
+
 - `-Merge` 플래그를 주면 같은 이름의 폴더는 건너뛴다. (기본 동작은 덮어쓰기)
 
 ### `logout.ps1` — 자리를 길게 비울 때

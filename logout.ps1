@@ -79,18 +79,51 @@ if (Confirm-Step "[3/8] GitHub CLI logout (all accounts)") {
 
 # 4. Remove Windows credentials
 if (Confirm-Step "[4/8] Remove git/gh Windows credentials") {
-    $targets = cmdkey /list | Select-String "git|gh" | ForEach-Object {
-        $parts = $_ -split "Target: "
-        if ($parts.Count -gt 1) { $parts[1].Trim() }
-    } | Where-Object { $_ }
+    # (a) tokens.txt에 있는 호스트들에 대해 git credential reject로 helper 캐시 정리
+    $tokenFile = Join-Path $PSScriptRoot "tokens.txt"
+    if ((Test-Path $tokenFile) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+        $hosts = Get-Content $tokenFile |
+            ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -and -not $_.StartsWith("#") } |
+            ForEach-Object {
+                $parts = $_ -split '\s+', 2
+                if ($parts.Count -gt 1) { $parts[0] } else { "github.com" }
+            } | Select-Object -Unique
+
+        foreach ($h in $hosts) {
+            "protocol=https`nhost=$h`n" | git credential reject 2>&1 | Out-Null
+            Write-Host "[Done] git credential rejected: $h" -ForegroundColor Green
+        }
+    }
+
+    # (b) cmdkey에서 git/gh/github/gitlab/ssafy 관련 자격증명 모두 삭제
+    # "Target:"/"대상:" 등 로케일별 라벨에 의존하지 않도록 LegacyGeneric:target= 패턴으로 추출
+    $targets = cmdkey /list | ForEach-Object {
+        if ($_ -match '(LegacyGeneric:target=\S+)') { $matches[1] }
+    } | Where-Object { $_ -match 'git|gh|github|gitlab|ssafy' }
 
     if ($targets) {
-        $targets | ForEach-Object {
-            cmdkey /delete:$_
-            Write-Host "[Done] Removed: $_" -ForegroundColor Green
+        foreach ($t in $targets) {
+            $result = cmdkey /delete:$t 2>&1
+            # 영어/한국어 성공 메시지 모두 매치
+            if ($result -match "successfully|성공") {
+                Write-Host "[Done] Removed: $t" -ForegroundColor Green
+            } else {
+                Write-Host "[Fail] $t -> $result" -ForegroundColor Red
+            }
         }
     } else {
-        Write-Host "[Skip] No git/gh credentials found" -ForegroundColor Yellow
+        Write-Host "[Skip] No matching cmdkey credentials" -ForegroundColor Yellow
+    }
+
+    # (c) 검증: 남은 자격증명 표시
+    $remaining = cmdkey /list | Select-String "git|gh|github|gitlab|ssafy"
+    if ($remaining) {
+        Write-Host "[Warning] Still present after cleanup:" -ForegroundColor Yellow
+        $remaining | ForEach-Object { Write-Host "  $($_.Line.Trim())" -ForegroundColor Yellow }
+        Write-Host "  (Credential Manager UI may be cached - close and reopen it to refresh)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "[Verified] No git/gh credentials remain in cmdkey" -ForegroundColor Green
     }
 } else {
     Write-Host "[Skip] Windows credentials" -ForegroundColor Yellow

@@ -1,7 +1,16 @@
-# GitHub Personal Access Token (PAT)
-# - 한 줄에 토큰 하나
-# - '#'로 시작하는 줄과 빈 줄은 무시됨
-# - 여러 계정이면 여러 줄로 작성
-# 사용법: 이 파일을 tokens.txt 로 복사한 뒤 토큰을 채워 넣고 login.ps1 실행
+# 로그인 토큰 파일
+# 형식: 한 줄에 "<host> <token>"
+#   - host 생략 시 github.com 으로 간주
+#   - github.com → gh CLI 로그인
+#   - 그 외(GitLab 등) → Windows 자격 증명 관리자에 저장 (git push/pull에 사용됨)
+#   - '#'로 시작하는 줄과 빈 줄은 무시됨
+# 사용법: 이 파일을 tokens.txt 로 복사 → 토큰 채우기 → login.ps1 실행
 
-ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# GitHub Personal Access Token
+#   필요한 scope: repo, read:org, gist, workflow
+github.com ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# GitLab Personal Access Token (예: lab.ssafy.com)
+#   User Settings → Access Tokens 에서 발급
+#   필요한 scope: read_repository, write_repository
+lab.ssafy.com glpat_xxxxxxxxxxxxxxxxxxxx

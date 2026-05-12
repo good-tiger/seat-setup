@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./tokens.txt)",
+      "Read(tokens.txt)",
+      "Read(C:\\SSAFY\\settings\\tokens.txt)"
+    ]
+  }
+}
